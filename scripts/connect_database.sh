@@ -24,7 +24,7 @@ operations() {
 				;;
 			2)
 				echo "inserting into table"
-				#insert_into_table.sh "$selected_table"
+				insert_into_table.sh "$selected_table"
 				;;
 			3)
 				echo "selecting from table"
@@ -60,7 +60,7 @@ if [ -d "$DB_DIR" ]; then
         case "$REPLY" in
             1)
                 echo "Creating a table..."
-                source "$HOME/BashProject/scripts/create_table.sh" #$DB_DIR
+                source "$HOME/BashProject/scripts/create_table.sh" "$DB_DIR"
                 ;;
             2)
                 echo "Listing tables:"

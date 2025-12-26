@@ -78,7 +78,7 @@ do
 	
 	#loops till the user chooses a valid data type (integer or string) only
 	#select only one primary key
-	PS3=$columnps
+	PS3=$columns
 	select dtype in string int 
 	do
 		case "$REPLY" in

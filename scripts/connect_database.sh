@@ -20,11 +20,11 @@ operations() {
 		case "$choice" in
 			1) 
 				echo "dropping table" 
-				#drop_table.sh "$selected_table" 
+				source scripts/drop_table.sh "$selected_table" 
 				;;
 			2)
 				echo "inserting into table"
-				insert_into_table.sh "$selected_table"
+				source scripts/insert_into_table.sh "$selected_table"
 				;;
 			3)
 				echo "selecting from table"

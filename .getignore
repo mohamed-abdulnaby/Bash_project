@@ -1,2 +1,4 @@
 .env
 BackUP
+ssh_id
+ssh_id.pub

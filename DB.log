@@ -1,0 +1,10 @@
+rm: cannot remove '/home/seif/DBs/mo': No such file or directory
+moe Database Created Successfully!
+@ Mon Dec 22 08:36:13 PM EET 2025
+moe Database Dropped Successfully!
+@ Mon Dec 22 08:36:23 PM EET 2025
+echo -e teachers_2 Table Created Successfully!\n@ Mon Dec 22 10:28:15 PM EET 2025
+echo -e teachers Table Created Successfully!\n@ Mon Dec 22 10:36:52 PM EET 2025
+teachers_1 Table Created Successfully!
+@ Mon Dec 22 10:39:07 PM EET 2025
+rm: cannot remove '/home/seif/DBs/5': No such file or directory

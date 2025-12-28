@@ -24,7 +24,7 @@ for word in $query; do
         in_select=1
         continue
     fi
-    if [ "$word" = "WHERE" ] || [ "$word" = "where" ]; then
+    if [ "$word" = "FROM" ] || [ "$word" = "from" ]; then
         break
     fi
     if [ $in_select -eq 1 ]; then
@@ -185,5 +185,6 @@ while read -r line; do
     
     unset row_values
 done < "$DATA_FILE"
-
+unset col_names
+unset print_indices
 echo ""

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 if [ -z "$DB_DIR" ]; then
-    echo "Error: DB_DIR not set"
-    exit 1
+    echo "Error: DB_DIR not set" 
+    return
 fi
 
 table="$selected_table"
@@ -17,7 +17,7 @@ DATA_FILE="$DB_DIR/$table.data"
 
 if [ ! -e "$META_FILE" ] || [ ! -e "$DATA_FILE" ]; then
     echo "Table doesn't exist"
-    exit 1
+    return
 fi
 #loads the meta file into an array
 mapfile -t meta < "$META_FILE"
@@ -82,7 +82,7 @@ if [ "$pk_index" -ne -1 ]; then
 
     if awk -F: -v idx="$pk_index" -v val="$pk_value" '$idx == val {found=1} END {exit found ? 0 : 1}' "$DATA_FILE"; then
         echo "Primary key already exists"
-        exit 1
+        return
     fi
 fi
 
@@ -99,3 +99,6 @@ done
 echo "$new_row" >> "$DATA_FILE"
 echo "row inserted"
 
+unset col_names
+unset col_types
+unset col_pk

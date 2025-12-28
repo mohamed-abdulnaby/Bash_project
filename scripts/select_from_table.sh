@@ -4,10 +4,11 @@ table="$1"
 META_FILE="$DB_DIR/$table.meta"
 DATA_FILE="$DB_DIR/$table.data"
 
+## extra valid
 # Validate table exists
 if [ ! -f "$META_FILE" ] || [ ! -f "$DATA_FILE" ]; then
     echo "Table '$table' does not exist."
-    exit 1
+    return
 fi
 
 # Show example and get query
@@ -18,6 +19,7 @@ read -p "Enter your query: " query
 # This gets "col1,col2" or "*"
 cols_part=""
 in_select=0
+## error handle
 for word in $query; do
     if [ "$word" = "SELECT" ] || [ "$word" = "select" ]; then
         in_select=1
@@ -98,11 +100,11 @@ else
         done
         if [ $found -eq 0 ]; then
             echo "Column '$col' does not exist."
-            exit 1
+            return
         fi
     done
 fi
-
+## return == exit
 # --- Step 5: Find WHERE column index if WHERE exists ---
 where_idx=-1
 if [ -n "$where_col" ]; then
@@ -114,7 +116,7 @@ if [ -n "$where_col" ]; then
     done
     if [ $where_idx -eq -1 ]; then
         echo "WHERE column '$where_col' does not exist."
-        exit 1
+        return
     fi
 fi
 
@@ -186,3 +188,4 @@ while read -r line; do
 done < "$DATA_FILE"
 
 echo ""
+## unset arrays

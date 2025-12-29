@@ -7,16 +7,17 @@ DATA_FILE="$DB_DIR/$table.data"
 # Validate table exists
 if [ ! -f "$META_FILE" ] || [ ! -f "$DATA_FILE" ]; then
     echo "Table '$table' does not exist."
-    exit 1
+    return
 fi
 
 # Check if table has data
 if [ ! -s "$DATA_FILE" ]; then
     echo "Table is empty, nothing to delete."
-    exit 0
+    return
 fi
 
 # Read column names from metadata
+# unset arrays if any
 unset col_names
 unset col_types
 declare -a col_names
@@ -41,13 +42,13 @@ read -p "Select column number for WHERE condition: " col_choice
 case "$col_choice" in
     ''|*[!0-9]*)
         echo "Invalid choice"
-        exit 1
+        return
         ;;
 esac
 
 if [ "$col_choice" -lt 1 ] || [ "$col_choice" -gt "${#col_names[@]}" ]; then
     echo "Invalid choice"
-    exit 1
+    return
 fi
 
 col_index=$((col_choice-1))
@@ -82,7 +83,7 @@ count=$(grep -c "$pattern" "$DATA_FILE")
 
 if [ "$count" -eq 0 ]; then
     echo "No matching rows found."
-    exit 0
+    return
 fi
 
 echo "----------------------------------------"
@@ -93,11 +94,11 @@ read -p "Are you sure? (yes/no): " confirm
 
 if [ "$confirm" != "yes" ]; then
     echo "Delete cancelled."
-    exit 0
+    return
 fi
 
 # --- DELETE USING SED (in-place, no temp file) ---
 # sed -i deletes matching lines directly in the file
 sed -i "/${pattern}/d" "$DATA_FILE"
 
-echo "Successfully deleted $count row(s)."
+echo -e "Successfully deleted $count row(s).\n@ "$(date)"" | tee -a "$HOME/BashProject/DB.log"

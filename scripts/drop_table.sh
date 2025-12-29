@@ -1,19 +1,20 @@
 #!/bin/bash
 
-$table="$1"
+table="$1"
 
 META_FILE="$DB_DIR/$table.meta"
 DATA_FILE="$DB_DIR/$table.data"
 
 if [ ! -f "$META_FILE" ] && [ ! -f "$DATA_FILE" ]; then
     echo "Table '$table' does not exist."
-    exit 1
+    return
 fi
 
-read -p "Are you sure you want to delete table '$table'? (y/N): " confirm
+read -p "Are you sure you want to delete table '$table'? (Y/n): " confirm
 case "$confirm" in
-    y|Y) ;;
-    *) echo "Aborted."; exit 0 ;;
+    Y) ;;
+    *) echo "Aborted."; return ;;
 esac
 rm -f "$META_FILE" "$DATA_FILE"
-echo "Table '$table' has been deleted."
+echo -e "Table '$table' has been deleted.\n@ "$(date)" | tee -a "$HOME/BashProject/DB.log""
+exit 0

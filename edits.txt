@@ -1,0 +1,5 @@
+create table ==> names shouldn't take special char except _ (checked)
+select table ==> "Example: SELECT col1,col2 FROM $table WHERE col=value"
+			   ----------------------------
+			   		remake
+update, delete ==> to be made

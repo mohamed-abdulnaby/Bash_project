@@ -105,4 +105,5 @@ mv "$DATA_FILE.tmp" "$DATA_FILE"
 unset col_names
 unset col_types
 
-echo "Successfully deleted $count row(s)."
+echo -e "Successfully deleted $count row(s).\n@ "$(date)"" | tee -a "$HOME/BashProject/DB.log"
+

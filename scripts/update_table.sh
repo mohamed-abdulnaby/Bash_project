@@ -17,6 +17,9 @@ if [ ! -s "$DATA_FILE" ]; then
 fi
 
 # Read column names and types from metadata
+unset col_names
+unset col_types
+unset col_pk
 declare -a col_names
 declare -a col_types
 declare -a col_pk

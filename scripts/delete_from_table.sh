@@ -17,6 +17,9 @@ if [ ! -s "$DATA_FILE" ]; then
 fi
 
 # Read column names from metadata
+# unset arrays if any
+unset col_names
+unset col_types
 declare -a col_names
 declare -a col_types
 while read -r line; do
@@ -99,7 +102,3 @@ fi
 sed -i "/${pattern}/d" "$DATA_FILE"
 
 echo -e "Successfully deleted $count row(s).\n@ "$(date)"" | tee -a "$HOME/BashProject/DB.log"
-
-#unset arrays
-unset col_names
-unset col_types

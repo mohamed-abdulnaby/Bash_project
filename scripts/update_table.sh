@@ -7,16 +7,20 @@ DATA_FILE="$DB_DIR/$table.data"
 # Validate table exists
 if [ ! -f "$META_FILE" ] || [ ! -f "$DATA_FILE" ]; then
     echo "Table '$table' does not exist."
-    exit 1
+    return
 fi
 
 # Check if table has data
 if [ ! -s "$DATA_FILE" ]; then
     echo "Table is empty, nothing to update."
-    exit 0
+    return
 fi
 
 # Read column names and types from metadata
+#unset arrays
+unset col_names
+unset col_types
+unset col_pk
 declare -a col_names
 declare -a col_types
 declare -a col_pk
@@ -44,15 +48,16 @@ read -p "Select column number to UPDATE: " set_col_choice
 case "$set_col_choice" in
     ''|*[!0-9]*)
         echo "Invalid choice"
-        exit 1
+        return
         ;;
 esac
 
 if [ "$set_col_choice" -lt 1 ] || [ "$set_col_choice" -gt "${#col_names[@]}" ]; then
     echo "Invalid choice"
-    exit 1
+    return
 fi
 
+##
 set_col_index=$((set_col_choice-1))
 set_col_name="${col_names[set_col_index]}"
 set_col_type="${col_types[set_col_index]}"
@@ -65,7 +70,7 @@ if [ "$set_col_type" = "int" ]; then
     case "$new_value" in
         ''|*[!0-9]*)
             echo "Invalid integer value"
-            exit 1
+            return
             ;;
     esac
 fi
@@ -74,7 +79,7 @@ fi
 case "$new_value" in
     *:*)
         echo "Value cannot contain ':'"
-        exit 1
+        return
         ;;
 esac
 
@@ -98,7 +103,7 @@ if [ "${col_pk[set_col_index]}" = "1" ]; then
     if grep -q "$check_pattern" "$DATA_FILE"; then
         echo "Error: Primary key value '$new_value' already exists!"
         echo "Cannot update - would create duplicate primary key."
-        exit 1
+        return
     fi
 fi
 
@@ -115,13 +120,13 @@ read -p "Select column number for WHERE condition: " where_col_choice
 case "$where_col_choice" in
     ''|*[!0-9]*)
         echo "Invalid choice"
-        exit 1
+        return
         ;;
 esac
 
 if [ "$where_col_choice" -lt 1 ] || [ "$where_col_choice" -gt "${#col_names[@]}" ]; then
     echo "Invalid choice"
-    exit 1
+    return
 fi
 
 where_col_index=$((where_col_choice-1))
@@ -153,7 +158,7 @@ count=$(grep -c "$where_pattern" "$DATA_FILE")
 
 if [ "$count" -eq 0 ]; then
     echo "No matching rows found."
-    exit 0
+    return
 fi
 
 echo "----------------------------------------"
@@ -164,7 +169,7 @@ read -p "Are you sure? (yes/no): " confirm
 
 if [ "$confirm" != "yes" ]; then
     echo "Update cancelled."
-    exit 0
+    return
 fi
 
 # --- Step 4: UPDATE using sed ---
@@ -251,8 +256,4 @@ else
     fi
 fi
 
-unset col_names
-unset col_types
-unset col_pk
-
-echo "Successfully updated $count row(s)."
+echo -e "Successfully updated $count row(s).\n@ "$(date)"" | tee -a "$HOME/BashProject/DB.log"

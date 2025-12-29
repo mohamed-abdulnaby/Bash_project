@@ -78,6 +78,30 @@ case "$new_value" in
         ;;
 esac
 
+# Check if updating a primary key column
+if [ "${col_pk[set_col_index]}" = "1" ]; then
+    echo "Warning: You are updating a PRIMARY KEY column!"
+    
+    # Check if new PK value already exists
+    escaped_check=$(echo "$new_value" | sed 's/[.*[\^$]/\\&/g')
+    
+    # Build pattern based on column position
+    if [ $set_col_index -eq 0 ]; then
+        check_pattern="^${escaped_check}:"
+    elif [ $set_col_index -eq $((${#col_names[@]}-1)) ]; then
+        check_pattern=":${escaped_check}$"
+    else
+        check_pattern=":${escaped_check}:"
+    fi
+    
+    # Check if this PK value already exists
+    if grep -q "$check_pattern" "$DATA_FILE"; then
+        echo "Error: Primary key value '$new_value' already exists!"
+        echo "Cannot update - would create duplicate primary key."
+        exit 1
+    fi
+fi
+
 # --- Step 2: Choose WHERE condition ---
 echo ""
 echo "Available columns for WHERE condition:"

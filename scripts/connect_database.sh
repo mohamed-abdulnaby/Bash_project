@@ -32,11 +32,11 @@ operations() {
 				;;
 			4)
 				echo "deleting from table" 
-				#delete_from_table.sh "$selected_table" 
+				source scripts/delete_from_table.sh "$selected_table" 
 				;;
 			5) 
 				echo "updating table"
-				#update_table.sh "$selected_table" 
+				source scripts/update_table.sh "$selected_table" 
 				;;
 			6)
 				echo "going back"

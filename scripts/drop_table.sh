@@ -1,6 +1,6 @@
 #!/bin/bash
 
-$table="$1"
+table="$1"
 
 META_FILE="$DB_DIR/$table.meta"
 DATA_FILE="$DB_DIR/$table.data"

@@ -187,4 +187,4 @@ done < "$DATA_FILE"
 # Replace original with temp file
 mv "$DATA_FILE.tmp" "$DATA_FILE"
 
-echo -e "Successfully updated $count row(s).\n@ "$(date)"" | tee -a "$HOME/BashProject/DB.log"
+echo -e "Successfully updated $count row(s).\n@ "$(date)"" | tee -a "$HOME/DBs/DB.log"

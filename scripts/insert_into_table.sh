@@ -40,7 +40,7 @@ declare -a values
 for ((i=0; i<col_count; i++))
 do
     col="${col_names[i]}"
-    type="{$col_types[i]}"
+    type="${col_types[i]}"
     
     
     while true
@@ -79,8 +79,12 @@ done
 
 if [ "$pk_index" -ne -1 ]; then
     pk_value="${values[pk_index]}"
+    awk_idx=$((pk_index + 1))  # awk fields are 1-based
 
-    if awk -F: -v idx="$pk_index" -v val="$pk_value" '$idx == val {found=1} END {exit found ? 0 : 1}' "$DATA_FILE"; then
+    if awk -F: -v idx="$awk_idx" -v val="$pk_value" '
+        BEGIN { found=0 }
+        $idx == val { found=1 }
+        END { exit found ? 0 : 1 }' "$DATA_FILE"; then
         echo "Primary key already exists"
         return
     fi
@@ -97,8 +101,9 @@ do
 done
 
 echo "$new_row" >> "$DATA_FILE"
-echo "row inserted"
+echo -e "row '$new_row'\ninserted.\n @ "$(date)"" | tee -a "$HOME/BashProject/DB.log"
 
 unset col_names
 unset col_types
 unset col_pk
+unset values

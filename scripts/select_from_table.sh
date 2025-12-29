@@ -110,6 +110,8 @@ BEGIN { n = split(tag_list,tags, " ")}
 	#print $column
 	}
 	}
+	else
+	{ is_match = 1 }
 	if (is_match) {
 	# print only tagged columns
 	for (i = 1; i <= NF; i++) {

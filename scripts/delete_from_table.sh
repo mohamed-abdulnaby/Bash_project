@@ -19,6 +19,9 @@ fi
 unset col_names
 unset col_types
 # Read column names from metadata
+# unset arrays if any
+unset col_names
+unset col_types
 declare -a col_names
 declare -a col_types
 while read -r line; do

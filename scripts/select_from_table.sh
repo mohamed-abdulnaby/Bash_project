@@ -3,188 +3,123 @@
 table="$1"
 META_FILE="$DB_DIR/$table.meta"
 DATA_FILE="$DB_DIR/$table.data"
-
+#pwd
+echo "$META_FILE"
+## extra valid
 # Validate table exists
-if [ ! -f "$META_FILE" ] || [ ! -f "$DATA_FILE" ]; then
+if [ ! -f "$META_FILE" ] && [ ! -f "$DATA_FILE" ]; then
     echo "Table '$table' does not exist."
     return
 fi
 
-# Show example and get query
-echo "Example: SELECT col1,col2 (use all instead of *) WHERE col=value"
-read -p "Enter your query: " query
+# arrays
+declare -a tags
 
-# --- Step 1: Extract the part after SELECT and before FROM ---
-# This gets "col1,col2" or "*"
-cols_part=""
-in_select=0
-for word in $query; do
-    
-    if [ "$word" = "SELECT" ] || [ "$word" = "select" ]; then
-        in_select=1
-        continue
-    fi
-    if [ "$word" = "FROM" ] || [ "$word" = "from" ]; then
-        break
-    fi
-    if [ $in_select -eq 1 ]; then
-        cols_part="$cols_part$word"
-    fi
-done
-
-# Remove commas from cols_part (turn "col1,col2" into "col1 col2")
-cols_part=$(echo "$cols_part" | tr ',' ' ')
-
-# --- Step 2: Extract WHERE clause if it exists ---
-where_col=""
-where_val=""
-where_op=""
-if echo "$query" | grep -qi "WHERE"; then
-    # Get everything after WHERE
-    where_part=$(echo "$query" | grep -oEi 'WHERE .*' | cut -d' ' -f2-)
-    
-    # Detect the operator and split accordingly
-    if echo "$where_part" | grep -q ">="; then
-        where_op=">="
-        where_col=$(echo "$where_part" | cut -d'>' -f1 | tr -d ' ')
-        where_val=$(echo "$where_part" | cut -d'=' -f2 | tr -d ' ')
-    elif echo "$where_part" | grep -q "<="; then
-        where_op="<="
-        where_col=$(echo "$where_part" | cut -d'<' -f1 | tr -d ' ')
-        where_val=$(echo "$where_part" | cut -d'=' -f2 | tr -d ' ')
-    elif echo "$where_part" | grep -q "!="; then
-        where_op="!="
-        where_col=$(echo "$where_part" | cut -d'!' -f1 | tr -d ' ')
-        where_val=$(echo "$where_part" | cut -d'=' -f2 | tr -d ' ')
-    elif echo "$where_part" | grep -q ">"; then
-        where_op=">"
-        where_col=$(echo "$where_part" | cut -d'>' -f1 | tr -d ' ')
-        where_val=$(echo "$where_part" | cut -d'>' -f2 | tr -d ' ')
-    elif echo "$where_part" | grep -q "<"; then
-        where_op="<"
-        where_col=$(echo "$where_part" | cut -d'<' -f1 | tr -d ' ')
-        where_val=$(echo "$where_part" | cut -d'<' -f2 | tr -d ' ')
-    elif echo "$where_part" | grep -q "="; then
-        where_op="="
-        where_col=$(echo "$where_part" | cut -d= -f1 | tr -d ' ')
-        where_val=$(echo "$where_part" | cut -d= -f2 | tr -d ' ')
-    fi
-fi
-
-# --- Step 3: Read column names from metadata file ---
-declare -a col_names
-while read -r line; do
-    # Extract just the column name (first part before :)
-    name=$(echo "$line" | cut -d: -f1)
-    col_names+=("$name")
-done < "$META_FILE"
-
-# --- Step 4: Figure out which columns to print ---
-declare -a print_indices
-if [ "$cols_part" = "*" ]; then
-    # Print all columns
-    for ((i=0; i<${#col_names[@]}; i++)); do
-        print_indices+=($i)
-    done
+# --- Step 1: Set the columns to be shown ---
+awk -F: '{ printf "%-10s", $1 } END { print "" }' $META_FILE
+read -p "Select columns in the format(y:y:N...:y): " selection
+if [[ "$selection" =~ ^(y|N)(:(y|N))+$ ]]
+then
+	echo "$selection"
+	IFS=: read -ra tags <<< $selection
+	read -p "Is there a condition?(Y/N): " is_condition
+	case "$is_condition" in
+		"Y")
+			read -p "Enter Condition: " condition ;;
+		"N")
+			echo "Okii" ;;
+		*) 
+			echo "Invalid confirmation!!" 
+			return
+			;;
+	esac
 else
-    # Print only specified columns
-    for col in $cols_part; do
-        found=0
-        for ((i=0; i<${#col_names[@]}; i++)); do
-            if [ "${col_names[i]}" = "$col" ]; then
-                print_indices+=($i)
-                found=1
-                break
-            fi
-        done
-        if [ $found -eq 0 ]; then
-            echo "Column '$col' does not exist."
-            return
-        fi
-    done
+	echo "Invalid column selection!!"
+	return	
 fi
 
-# --- Step 5: Find WHERE column index if WHERE exists ---
-where_idx=-1
-if [ -n "$where_col" ]; then
-    for ((i=0; i<${#col_names[@]}; i++)); do
-        if [ "${col_names[i]}" = "$where_col" ]; then
-            where_idx=$i
-            break
-        fi
-    done
-    if [ $where_idx -eq -1 ]; then
-        echo "WHERE column '$where_col' does not exist."
-        return
-    fi
+if [[ "$is_condition" == "Y" ]]
+then
+	# --- Step 2: Extract WHERE clause if it exists ---
+	echo "$condition"
+	where_col=""
+	where_val=""
+	where_op=""
+	where_part="$condition"
+	if [[ "$where_part" == *">="* ]]; then
+	    where_op=">="
+	    where_col="${where_part%%>=*}"
+	    where_val="${where_part##*>=}"
+	elif [[ "$where_part" == *"<="* ]]; then
+	    where_op="<="
+	    where_col="${where_part%%<=*}"
+	    where_val="${where_part##*<=}"
+	elif [[ "$where_part" == *"!="* ]]; then
+	    where_op="!="
+	    where_col="${where_part%%!=*}"
+	    where_val="${where_part##*!=}"
+	elif [[ "$where_part" == *">"* ]]; then
+	    where_op=">"
+	    where_col="${where_part%%>*}"
+	    where_val="${where_part##*>}"
+	elif [[ "$where_part" == *"<"* ]]; then
+	    where_op="<"
+	    where_col="${where_part%%<*}"
+	    where_val="${where_part##*<}"
+	elif [[ "$where_part" == *"="* ]]; then
+	    where_op="="
+	    where_col="${where_part%%=*}"
+	    where_val="${where_part##*=}"
+	fi
+	echo "$where_op"
+	echo "$where_col"
+	echo "$where_val"
 fi
-
-# --- Step 6: Print header row ---
-for idx in "${print_indices[@]}"; do
-    echo -n "${col_names[idx]}"
-    echo -n $'\t'  # Tab character
-done
-echo ""
-echo "----------------------------------------"
-
-# --- Step 7: Read and print data rows ---
-while read -r line; do
-    # Split line by colons into an array
-    declare -a row_values
-    temp="$line"
-    while [ -n "$temp" ]; do
-        # Extract value before first colon
-        if [[ "$temp" == *:* ]]; then
-            value="${temp%%:*}"  # Everything before first :
-            temp="${temp#*:}"    # Everything after first :
-        else
-            value="$temp"
-            temp=""
-        fi
-        row_values+=("$value")
-    done
-    
-    # Check WHERE condition if it exists
-    if [ $where_idx -ne -1 ]; then
-        col_val="${row_values[where_idx]}"
-        match=0
-        
-        case "$where_op" in
-            "=")
-                [ "$col_val" = "$where_val" ] && match=1
-                ;;
-            "!=")
-                [ "$col_val" != "$where_val" ] && match=1
-                ;;
-            ">")
-                [ "$col_val" -gt "$where_val" ] 2>$HOME/BashProject/DB.log && match=1
-                ;;
-            "<")
-                [ "$col_val" -lt "$where_val" ] 2>$HOME/BashProject/DB.log && match=1
-                ;;
-            ">=")
-                [ "$col_val" -ge "$where_val" ] 2>$HOME/BashProject/DB.log && match=1
-                ;;
-            "<=")
-                [ "$col_val" -le "$where_val" ] 2>$HOME/BashProject/DB.log && match=1
-                ;;
-        esac
-        
-        if [ $match -eq 0 ]; then
-            unset row_values
-            continue  # Skip this row
-        fi
-    fi
-    
-    # Print only the selected columns
-    for idx in "${print_indices[@]}"; do
-        echo -n "${row_values[idx]}"
-        echo -n $'\t'
-    done
-    echo ""
-    
-    unset row_values
-done < "$DATA_FILE"
-unset col_names
-unset print_indices
-echo ""
+# --- Step 3: print ---
+# --- Step 3.1: print table header ---
+tags_str="${tags[*]}"
+awk -F: -v list="$tags_str" '
+BEGIN { n = split(list,tags, " ")}
+{
+	if (tags[NR] == "y"){
+		printf "%-15s|", $1
+	} 
+}
+END { printf "\n"}' $META_FILE
+# --- Step 3.2: print table contents ---
+where_col=$(awk -F: -v column="$where_col" '{
+	if($1 == column) print NR
+}' $META_FILE)
+#echo "$where_col"
+awk -F: -v tag_list="$tags_str" -v operation="$where_op" -v column="$where_col" -v value="$where_val" -v condition="$is_condition" '
+BEGIN { n = split(tag_list,tags, " ")}
+{
+	# skip if no condition
+	is_match = 0
+	if (condition == "Y") {
+	if (operation == ">=" && $column >= value) 
+	{
+	is_match = 1
+	#print $column 
+	}
+	else if (operation == "<=" && $column <= value) is_match = 1
+	else if (operation == ">"  && $column >  value) is_match = 1
+	else if (operation == "<"  && $column <  value) is_match = 1
+	else if (operation == "!=" && $column != value) is_match = 1
+	else if (operation == "="  && $column == value) {is_match = 1
+	#print $column
+	}
+	}
+	if (is_match) {
+	# print only tagged columns
+	for (i = 1; i <= NF; i++) {
+	    if (tags[i] == "y") {
+		printf "%-15s|", $i
+	    }
+	}
+	printf "\n"
+	}
+}
+END { printf "\n"} ' $DATA_FILE
+## unset arrays
+unset tags

@@ -16,6 +16,8 @@ if [ ! -s "$DATA_FILE" ]; then
     return
 fi
 
+unset col_names
+unset col_types
 # Read column names from metadata
 # unset arrays if any
 unset col_names
@@ -57,37 +59,30 @@ selected_col="${col_names[col_index]}"
 # Get value to match
 read -p "Enter value to delete (rows where $selected_col = value): " delete_value
 
-# Escape special characters for sed (. * [ ] ^ $ \)
-escaped_value=$(echo "$delete_value" | sed 's/[.*[\^$]/\\&/g')
-
-# Build sed pattern based on column position
-if [ $col_index -eq 0 ]; then
-    # First column: ^value:
-    pattern="^${escaped_value}:"
-elif [ $col_index -eq $((${#col_names[@]}-1)) ]; then
-    # Last column: :value$
-    pattern=":${escaped_value}$"
-else
-    # Middle column: :value:
-    pattern=":${escaped_value}:"
-fi
-
-# Show matching rows before deletion
 echo ""
 echo "Rows that will be deleted:"
 echo "----------------------------------------"
-grep "$pattern" "$DATA_FILE"
 
-# Count matching rows
-count=$(grep -c "$pattern" "$DATA_FILE")
+# Show matching rows and count them
+count=0
+while IFS= read -r line; do
+    # Split the line by : into an array
+    IFS=: read -ra values <<< "$line"
+    
+    # Check if the specific column matches
+    if [ "${values[$col_index]}" = "$delete_value" ]; then
+        echo "$line"
+        ((count++))
+    fi
+done < "$DATA_FILE"
+
+echo "----------------------------------------"
+echo "Total rows to delete: $count"
 
 if [ "$count" -eq 0 ]; then
     echo "No matching rows found."
     return
 fi
-
-echo "----------------------------------------"
-echo "Total rows to delete: $count"
 
 # Confirm before deleting
 read -p "Are you sure? (yes/no): " confirm
@@ -97,8 +92,22 @@ if [ "$confirm" != "yes" ]; then
     return
 fi
 
-# --- DELETE USING SED (in-place, no temp file) ---
-# sed -i deletes matching lines directly in the file
-sed -i "/${pattern}/d" "$DATA_FILE"
+# Create empty temp file first
+> "$DATA_FILE.tmp"
+
+while IFS= read -r line; do
+    IFS=: read -ra values <<< "$line"
+    
+    # Keep the row only if it does NOT match
+    if [ "${values[$col_index]}" != "$delete_value" ]; then
+        echo "$line" >> "$DATA_FILE.tmp"
+    fi
+done < "$DATA_FILE"
+
+# Replace original with temp file
+mv "$DATA_FILE.tmp" "$DATA_FILE"
+
+unset col_names
+unset col_types
 
 echo -e "Successfully deleted $count row(s).\n@ "$(date)"" | tee -a "$HOME/DBs/DB.log"

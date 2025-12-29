@@ -83,24 +83,20 @@ case "$new_value" in
         ;;
 esac
 
-# Check if updating a primary key column
 if [ "${col_pk[set_col_index]}" = "1" ]; then
     echo "Warning: You are updating a PRIMARY KEY column!"
     
-    # Check if new PK value already exists
-    escaped_check=$(echo "$new_value" | sed 's/[.*[\^$]/\\&/g')
+    # Check if new PK value already exists by parsing each row
+    pk_exists=0
+    while IFS= read -r line; do
+        IFS=: read -ra values <<< "$line"
+        if [ "${values[$set_col_index]}" = "$new_value" ]; then
+            pk_exists=1
+            break
+        fi
+    done < "$DATA_FILE"
     
-    # Build pattern based on column position
-    if [ $set_col_index -eq 0 ]; then
-        check_pattern="^${escaped_check}:"
-    elif [ $set_col_index -eq $((${#col_names[@]}-1)) ]; then
-        check_pattern=":${escaped_check}$"
-    else
-        check_pattern=":${escaped_check}:"
-    fi
-    
-    # Check if this PK value already exists
-    if grep -q "$check_pattern" "$DATA_FILE"; then
+    if [ "$pk_exists" -eq 1 ]; then
         echo "Error: Primary key value '$new_value' already exists!"
         echo "Cannot update - would create duplicate primary key."
         return
@@ -139,30 +135,23 @@ echo ""
 echo "Rows that will be updated:"
 echo "----------------------------------------"
 
-# Escape special characters for grep/sed
-escaped_where=$(echo "$where_value" | sed 's/[.*[\^$]/\\&/g')
+count=0
+while IFS= read -r line; do
+    IFS=: read -ra values <<< "$line"
+    
+    if [ "${values[$where_col_index]}" = "$where_value" ]; then
+        echo "$line"
+        ((count++))
+    fi
+done < "$DATA_FILE"
 
-# Build grep pattern for WHERE column
-if [ $where_col_index -eq 0 ]; then
-    where_pattern="^${escaped_where}:"
-elif [ $where_col_index -eq $((${#col_names[@]}-1)) ]; then
-    where_pattern=":${escaped_where}$"
-else
-    where_pattern=":${escaped_where}:"
-fi
-
-# Show matching rows
-grep "$where_pattern" "$DATA_FILE"
-
-count=$(grep -c "$where_pattern" "$DATA_FILE")
+echo "----------------------------------------"
+echo "Total rows to update: $count"
 
 if [ "$count" -eq 0 ]; then
     echo "No matching rows found."
     return
 fi
-
-echo "----------------------------------------"
-echo "Total rows to update: $count"
 
 # Confirm
 read -p "Are you sure? (yes/no): " confirm
@@ -172,88 +161,30 @@ if [ "$confirm" != "yes" ]; then
     return
 fi
 
-# --- Step 4: UPDATE using sed ---
-# We need to replace the value in the SET column
-# while keeping other columns intact
+# --- Step 4: UPDATE using temp file ---
+while IFS= read -r line; do
+    IFS=: read -ra values <<< "$line"
+    
+    # Check if this row matches WHERE condition
+    if [ "${values[$where_col_index]}" = "$where_value" ]; then
+        # Update the SET column
+        values[$set_col_index]="$new_value"
+    fi
+    
+    # Rebuild the line
+    new_line=""
+    for ((i=0; i<${#values[@]}; i++)); do
+        if [ $i -eq 0 ]; then
+            new_line="${values[i]}"
+        else
+            new_line="$new_line:${values[i]}"
+        fi
+    done
+    
+    echo "$new_line" >> "$DATA_FILE.tmp"
+done < "$DATA_FILE"
 
-# Escape new value for sed replacement
-escaped_new=$(echo "$new_value" | sed 's/[&/\]/\\&/g')
-
-# Build sed substitution based on column positions
-if [ $set_col_index -eq 0 ]; then
-    # Update first column: ^old: -> ^new:
-    if [ $where_col_index -eq 0 ]; then
-        # SET and WHERE are same column
-        sed -i "s/^${escaped_where}:/${escaped_new}:/" "$DATA_FILE"
-    else
-        # Different columns
-        sed -i "/${where_pattern}/s/^[^:]*:/${escaped_new}:/" "$DATA_FILE"
-    fi
-elif [ $set_col_index -eq $((${#col_names[@]}-1)) ]; then
-    # Update last column: :old$ -> :new$
-    if [ $where_col_index -eq $set_col_index ]; then
-        # SET and WHERE are same column
-        sed -i "s/:${escaped_where}$/:${escaped_new}/" "$DATA_FILE"
-    else
-        # Different columns
-        sed -i "/${where_pattern}/s/:[^:]*$/:${escaped_new}/" "$DATA_FILE"
-    fi
-else
-    # Update middle column: :old: -> :new:
-    # This is tricky - need to update the Nth occurrence
-    
-    # Count colons before target column
-    colons_before=$set_col_index
-    
-    # Build pattern to match the specific field
-    # Pattern: ^(fields before):(old_value):(fields after)$
-    
-    if [ $where_col_index -eq $set_col_index ]; then
-        # SET and WHERE are same column
-        sed -i "s/:${escaped_where}:/:${escaped_new}:/" "$DATA_FILE"
-    else
-        # Different columns - need to be more careful
-        # Use a loop to update each matching line
-        while IFS= read -r line; do
-            if echo "$line" | grep -q "$where_pattern"; then
-                # Split line into array
-                declare -a values
-                temp="$line"
-                while [ -n "$temp" ]; do
-                    if [[ "$temp" == *:* ]]; then
-                        value="${temp%%:*}"
-                        temp="${temp#*:}"
-                    else
-                        value="$temp"
-                        temp=""
-                    fi
-                    values+=("$value")
-                done
-                
-                # Update the target column
-                values[$set_col_index]="$new_value"
-                
-                # Rebuild line
-                new_line=""
-                for ((i=0; i<${#values[@]}; i++)); do
-                    if [ $i -eq 0 ]; then
-                        new_line="${values[i]}"
-                    else
-                        new_line="$new_line:${values[i]}"
-                    fi
-                done
-                
-                # Escape for sed
-                escaped_old_line=$(echo "$line" | sed 's/[.*[\^$]/\\&/g')
-                escaped_new_line=$(echo "$new_line" | sed 's/[&/\]/\\&/g')
-                
-                # Replace the line
-                sed -i "s/^${escaped_old_line}$/${escaped_new_line}/" "$DATA_FILE"
-                
-                unset values
-            fi
-        done < <(cat "$DATA_FILE")
-    fi
-fi
+# Replace original with temp file
+mv "$DATA_FILE.tmp" "$DATA_FILE"
 
 echo -e "Successfully updated $count row(s).\n@ "$(date)"" | tee -a "$HOME/DBs/DB.log"

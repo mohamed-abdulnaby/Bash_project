@@ -54,7 +54,6 @@ selected_col="${col_names[col_index]}"
 # Get value to match
 read -p "Enter value to delete (rows where $selected_col = value): " delete_value
 
-# FIX: Parse each row and check the specific column instead of pattern matching
 echo ""
 echo "Rows that will be deleted:"
 echo "----------------------------------------"
@@ -88,7 +87,9 @@ if [ "$confirm" != "yes" ]; then
     return
 fi
 
-# FIX: Delete by checking exact column match, write to temp file
+# Create empty temp file first
+> "$DATA_FILE.tmp"
+
 while IFS= read -r line; do
     IFS=: read -ra values <<< "$line"
     
@@ -100,5 +101,8 @@ done < "$DATA_FILE"
 
 # Replace original with temp file
 mv "$DATA_FILE.tmp" "$DATA_FILE"
+
+unset col_names
+unset col_types
 
 echo "Successfully deleted $count row(s)."

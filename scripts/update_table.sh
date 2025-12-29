@@ -17,6 +17,9 @@ if [ ! -s "$DATA_FILE" ]; then
 fi
 
 # Read column names and types from metadata
+unset col_names
+unset col_types
+unset col_pk
 declare -a col_names
 declare -a col_types
 declare -a col_pk
@@ -78,7 +81,6 @@ case "$new_value" in
         ;;
 esac
 
-# FIX: Check if updating a primary key column - allow it but prevent duplicates
 if [ "${col_pk[set_col_index]}" = "1" ]; then
     echo "Warning: You are updating a PRIMARY KEY column!"
     
@@ -131,7 +133,6 @@ echo ""
 echo "Rows that will be updated:"
 echo "----------------------------------------"
 
-# FIX: Parse each row and check exact column match
 count=0
 while IFS= read -r line; do
     IFS=: read -ra values <<< "$line"
@@ -159,7 +160,6 @@ if [ "$confirm" != "yes" ]; then
 fi
 
 # --- Step 4: UPDATE using temp file ---
-# FIX: Use temp file approach - simpler and more reliable
 while IFS= read -r line; do
     IFS=: read -ra values <<< "$line"
     

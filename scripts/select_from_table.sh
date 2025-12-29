@@ -11,27 +11,28 @@ if [ ! -f "$META_FILE" ] || [ ! -f "$DATA_FILE" ]; then
 fi
 
 # Show example and get query
-echo "Example: SELECT col1,col2 (use all instead of *) WHERE col=value"
+echo "Example: SELECT col1,col2 (use * to select all) WHERE col=value"
 read -p "Enter your query: " query
 
 # --- Step 1: Extract the part after SELECT and before FROM ---
 # This gets "col1,col2" or "*"
 cols_part=""
 in_select=0
+set -f
 for word in $query; do
     
     if [ "$word" = "SELECT" ] || [ "$word" = "select" ]; then
         in_select=1
         continue
     fi
-    if [ "$word" = "FROM" ] || [ "$word" = "from" ]; then
+    if [ "$word" = "WHERE" ] || [ "$word" = "where" ]; then
         break
     fi
     if [ $in_select -eq 1 ]; then
         cols_part="$cols_part$word"
     fi
 done
-
+set +f
 # Remove commas from cols_part (turn "col1,col2" into "col1 col2")
 cols_part=$(echo "$cols_part" | tr ',' ' ')
 
@@ -72,6 +73,7 @@ if echo "$query" | grep -qi "WHERE"; then
 fi
 
 # --- Step 3: Read column names from metadata file ---
+unset col_names
 declare -a col_names
 while read -r line; do
     # Extract just the column name (first part before :)
@@ -80,6 +82,7 @@ while read -r line; do
 done < "$META_FILE"
 
 # --- Step 4: Figure out which columns to print ---
+unset print_indices
 declare -a print_indices
 if [ "$cols_part" = "*" ]; then
     # Print all columns

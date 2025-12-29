@@ -20,15 +20,15 @@ operations() {
 		case "$choice" in
 			1) 
 				echo "dropping table" 
-				source scripts/drop_table.sh "$selected_table" 
+				source $HOME/BashProject/scripts/drop_table.sh "$selected_table" 
 				;;
 			2)
 				echo "inserting into table"
-				source scripts/insert_into_table.sh "$selected_table"
+				source $HOME/BashProject/scripts/insert_into_table.sh "$selected_table"
 				;;
 			3)
 				echo "selecting from table"
-				select_from_table.sh "$selected_table" 
+				source $HOME/BashProject/scripts/select_from_table.sh "$selected_table" 
 				;;
 			4)
 				echo "deleting from table" 
@@ -74,12 +74,12 @@ if [ -d "$DB_DIR" ]; then
                 fi
                 ;;
             3)
-            	files=$(basename -s .meta -a "$DB_DIR"/*.meta)
-                if [[ $files == "*" ]]; then
+            	mapfile -t files < <(basename -s .meta -a "$DB_DIR"/*.meta)
+                if [[ ${files[0]} == "*" ]]; then
                     echo "No tables to operate on."
                     continue
                 fi
-                echo "$files"
+                echo "${files[@]}"
                 read -p "Enter the table to operate on(or back): " value
                 if [[ "$value" == "back" ]]
                 then
@@ -93,11 +93,12 @@ if [ -d "$DB_DIR" ]; then
                 		selected_table=$value
                 	fi
                 done
-                if [[ "$selected_table" == "" ]]
+                echo "$selected_table"
+                if [[ -n "$selected_table" ]]
                 then
-                	echo "$value Table not found"
-                else
                 	operations
+                else
+                	echo "$value Table not found"
                 fi
                 ;;
             4)

@@ -7,11 +7,11 @@ DATA_FILE="$DB_DIR/$table.data"
 # Validate table exists
 if [ ! -f "$META_FILE" ] || [ ! -f "$DATA_FILE" ]; then
     echo "Table '$table' does not exist."
-    exit 1
+    return
 fi
 
 # Show example and get query
-echo "Example: SELECT col1,col2 FROM $table WHERE col=value"
+echo "Example: SELECT col1,col2 (use all instead of *) WHERE col=value"
 read -p "Enter your query: " query
 
 # --- Step 1: Extract the part after SELECT and before FROM ---
@@ -19,6 +19,7 @@ read -p "Enter your query: " query
 cols_part=""
 in_select=0
 for word in $query; do
+    
     if [ "$word" = "SELECT" ] || [ "$word" = "select" ]; then
         in_select=1
         continue
@@ -98,7 +99,7 @@ else
         done
         if [ $found -eq 0 ]; then
             echo "Column '$col' does not exist."
-            exit 1
+            return
         fi
     done
 fi
@@ -114,7 +115,7 @@ if [ -n "$where_col" ]; then
     done
     if [ $where_idx -eq -1 ]; then
         echo "WHERE column '$where_col' does not exist."
-        exit 1
+        return
     fi
 fi
 
@@ -156,16 +157,16 @@ while read -r line; do
                 [ "$col_val" != "$where_val" ] && match=1
                 ;;
             ">")
-                [ "$col_val" -gt "$where_val" ] 2>/dev/null && match=1
+                [ "$col_val" -gt "$where_val" ] 2>$HOME/BashProject/DB.log && match=1
                 ;;
             "<")
-                [ "$col_val" -lt "$where_val" ] 2>/dev/null && match=1
+                [ "$col_val" -lt "$where_val" ] 2>$HOME/BashProject/DB.log && match=1
                 ;;
             ">=")
-                [ "$col_val" -ge "$where_val" ] 2>/dev/null && match=1
+                [ "$col_val" -ge "$where_val" ] 2>$HOME/BashProject/DB.log && match=1
                 ;;
             "<=")
-                [ "$col_val" -le "$where_val" ] 2>/dev/null && match=1
+                [ "$col_val" -le "$where_val" ] 2>$HOME/BashProject/DB.log && match=1
                 ;;
         esac
         
@@ -184,5 +185,6 @@ while read -r line; do
     
     unset row_values
 done < "$DATA_FILE"
-
+unset col_names
+unset print_indices
 echo ""

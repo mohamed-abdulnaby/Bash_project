@@ -83,7 +83,7 @@ do
 
         # contains :
         case "$name" in
-            *:*)
+            (*[!a-zA-Z0-9_]*)
                 echo "invalid column name"
                 continue
                 ;;

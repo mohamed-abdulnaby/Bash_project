@@ -28,7 +28,7 @@ operations() {
 				;;
 			3)
 				echo "selecting from table"
-				#select_from_table.sh "$selected_table" 
+				source scripts/select_from_table.sh "$selected_table" 
 				;;
 			4)
 				echo "deleting from table" 

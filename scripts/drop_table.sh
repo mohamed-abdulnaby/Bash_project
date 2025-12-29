@@ -1,6 +1,6 @@
 #!/bin/bash
 
-$table="$1"
+table="$1"
 
 META_FILE="$DB_DIR/$table.meta"
 DATA_FILE="$DB_DIR/$table.data"
@@ -16,4 +16,5 @@ case "$confirm" in
     *) echo "Aborted."; return ;;
 esac
 rm -f "$META_FILE" "$DATA_FILE"
-echo "Table '$table' has been deleted." | tee -a "$HOME/BashProject/DB.log"
+echo -e "Table '$table' has been deleted.\n@ "$(date)" | tee -a "$HOME/BashProject/DB.log""
+exit 0

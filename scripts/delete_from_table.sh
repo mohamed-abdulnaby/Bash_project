@@ -101,4 +101,4 @@ fi
 # sed -i deletes matching lines directly in the file
 sed -i "/${pattern}/d" "$DATA_FILE"
 
-echo -e "Successfully deleted $count row(s).\n@ "$(date)"" | tee -a "$HOME/BashProject/DB.log"
+echo -e "Successfully deleted $count row(s).\n@ "$(date)"" | tee -a "$HOME/DBs/DB.log"

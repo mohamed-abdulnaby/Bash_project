@@ -172,7 +172,7 @@ do
     echo "${col_names[i]}:${col_types[i]}:${col_pk[i]}" >> "$META_FILE"
 done
 
-echo -e "Table '$table' created successfully.\n@ "$(date)"" | tee -a "$HOME/BashProject/DB.log"
+echo -e "Table '$table' created successfully.\n@ "$(date)"" | tee -a "$HOME/DBs/DB.log"
 
 #resetting everything
 unset col_names

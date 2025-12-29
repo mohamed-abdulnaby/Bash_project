@@ -16,5 +16,5 @@ case "$confirm" in
     *) echo "Aborted."; return ;;
 esac
 rm -f "$META_FILE" "$DATA_FILE"
-echo -e "Table '$table' has been deleted.\n@ "$(date)" | tee -a "$HOME/BashProject/DB.log""
+echo -e "Table '$table' has been deleted.\n@ "$(date)" | tee -a "$HOME/DBs/DB.log""
 exit 0

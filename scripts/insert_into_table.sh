@@ -101,7 +101,7 @@ do
 done
 
 echo "$new_row" >> "$DATA_FILE"
-echo -e "row '$new_row'\ninserted.\n @ "$(date)"" | tee -a "$HOME/BashProject/DB.log"
+echo -e "row '$new_row'\ninserted.\n @ "$(date)"" | tee -a "$HOME/DBs/DB.log"
 
 unset col_names
 unset col_types

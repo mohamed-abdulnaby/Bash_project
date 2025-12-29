@@ -1,2 +1,3 @@
 #!/bin/bash
-ls $HOME/DBs
+basename -a "$HOME/DBs"/*/ | tr '\n' ' '
+echo ""

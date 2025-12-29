@@ -12,6 +12,7 @@ if [ ! -f "$META_FILE" ] && [ ! -f "$DATA_FILE" ]; then
     return
 fi
 
+<<<<<<< HEAD
 # arrays
 declare -a tags
 
@@ -33,6 +34,87 @@ then
 			return
 			;;
 	esac
+=======
+# Show example and get query
+echo "Example: SELECT col1,col2 (use * to select all) WHERE col=value"
+read -p "Enter your query: " query
+
+# --- Step 1: Extract the part after SELECT and before FROM ---
+# This gets "col1,col2" or "*"
+cols_part=""
+in_select=0
+set -f
+for word in $query; do
+    
+    if [ "$word" = "SELECT" ] || [ "$word" = "select" ]; then
+        in_select=1
+        continue
+    fi
+    if [ "$word" = "WHERE" ] || [ "$word" = "where" ]; then
+        break
+    fi
+    if [ $in_select -eq 1 ]; then
+        cols_part="$cols_part$word"
+    fi
+done
+set +f
+# Remove commas from cols_part (turn "col1,col2" into "col1 col2")
+cols_part=$(echo "$cols_part" | tr ',' ' ')
+
+# --- Step 2: Extract WHERE clause if it exists ---
+where_col=""
+where_val=""
+where_op=""
+if echo "$query" | grep -qi "WHERE"; then
+    # Get everything after WHERE
+    where_part=$(echo "$query" | grep -oEi 'WHERE .*' | cut -d' ' -f2-)
+    
+    # Detect the operator and split accordingly
+    if echo "$where_part" | grep -q ">="; then
+        where_op=">="
+        where_col=$(echo "$where_part" | cut -d'>' -f1 | tr -d ' ')
+        where_val=$(echo "$where_part" | cut -d'=' -f2 | tr -d ' ')
+    elif echo "$where_part" | grep -q "<="; then
+        where_op="<="
+        where_col=$(echo "$where_part" | cut -d'<' -f1 | tr -d ' ')
+        where_val=$(echo "$where_part" | cut -d'=' -f2 | tr -d ' ')
+    elif echo "$where_part" | grep -q "!="; then
+        where_op="!="
+        where_col=$(echo "$where_part" | cut -d'!' -f1 | tr -d ' ')
+        where_val=$(echo "$where_part" | cut -d'=' -f2 | tr -d ' ')
+    elif echo "$where_part" | grep -q ">"; then
+        where_op=">"
+        where_col=$(echo "$where_part" | cut -d'>' -f1 | tr -d ' ')
+        where_val=$(echo "$where_part" | cut -d'>' -f2 | tr -d ' ')
+    elif echo "$where_part" | grep -q "<"; then
+        where_op="<"
+        where_col=$(echo "$where_part" | cut -d'<' -f1 | tr -d ' ')
+        where_val=$(echo "$where_part" | cut -d'<' -f2 | tr -d ' ')
+    elif echo "$where_part" | grep -q "="; then
+        where_op="="
+        where_col=$(echo "$where_part" | cut -d= -f1 | tr -d ' ')
+        where_val=$(echo "$where_part" | cut -d= -f2 | tr -d ' ')
+    fi
+fi
+
+# --- Step 3: Read column names from metadata file ---
+unset col_names
+declare -a col_names
+while read -r line; do
+    # Extract just the column name (first part before :)
+    name=$(echo "$line" | cut -d: -f1)
+    col_names+=("$name")
+done < "$META_FILE"
+
+# --- Step 4: Figure out which columns to print ---
+unset print_indices
+declare -a print_indices
+if [ "$cols_part" = "*" ]; then
+    # Print all columns
+    for ((i=0; i<${#col_names[@]}; i++)); do
+        print_indices+=($i)
+    done
+>>>>>>> dcad9ad (docs: final edit in update and delete)
 else
 	echo "Invalid column selection!!"
 	return	

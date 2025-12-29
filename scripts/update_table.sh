@@ -17,6 +17,7 @@ if [ ! -s "$DATA_FILE" ]; then
 fi
 
 # Read column names and types from metadata
+#unset arrays
 unset col_names
 unset col_types
 unset col_pk
@@ -56,6 +57,7 @@ if [ "$set_col_choice" -lt 1 ] || [ "$set_col_choice" -gt "${#col_names[@]}" ]; 
     return
 fi
 
+##
 set_col_index=$((set_col_choice-1))
 set_col_name="${col_names[set_col_index]}"
 set_col_type="${col_types[set_col_index]}"
@@ -185,8 +187,4 @@ done < "$DATA_FILE"
 # Replace original with temp file
 mv "$DATA_FILE.tmp" "$DATA_FILE"
 
-unset col_names
-unset col_types
-unset col_pk
-
-echo "Successfully updated $count row(s)."
+echo -e "Successfully updated $count row(s).\n@ "$(date)"" | tee -a "$HOME/BashProject/DB.log"

@@ -7,32 +7,32 @@ fi
 # -------------------------
 while true
 do
-    read -p "enter the name of the table: " table
+	table=$(zenity --entry --title="Table Name" --text="Enter table name: ")
 
-    # empty?
-    if [ -z "$table" ]; then
-        echo "invalid table name"
-        continue
-    fi
+	# empty?
+	if [ -z "$table" ]; then
+	zenity --error --text="Table names can't be empty!!"
+	continue
+	fi
 
-    # contains colon?
-    case "$table" in
-        *:*)
-            echo "invalid table name"
-            continue
-            ;;
-    esac
+	# contains colon?
+	case "$table" in
+	*:*)
+	    zenity --error --text="Table names can't contain ':'!!"
+	    continue
+	    ;;
+	esac
 
-    META_FILE="$DB_DIR/$table.meta"
-    DATA_FILE="$DB_DIR/$table.data"
+	META_FILE="$DB_DIR/$table.meta"
+	DATA_FILE="$DB_DIR/$table.data"
 
-    # file exists?
-    if [ -e "$META_FILE" ] || [ -e "$DATA_FILE" ]; then
-        echo "Table already exists"
-        continue
-    fi
+	# file exists?
+	if [ -e "$META_FILE" ] || [ -e "$DATA_FILE" ]; then
+	zenity --error --text="Table $table already exists!!"
+	continue
+	fi
 
-    break
+	break
 done
 
 
@@ -41,18 +41,22 @@ done
 # -------------------------
 while true
 do
-    read -p "enter number of columns: " col_count
+    #read -p "enter number of columns: " col_count
+    col_count=$(zenity --entry --title="Column Number" /
+    --text="Enter number of columns: ")
 
     # regex using case
     case "$col_count" in
         ''|*[!0-9]*)
             echo "Invalid number"
+            zenity --error --text="Invalid Number!!"
             continue
             ;;
     esac
 
     if [ "$col_count" -lt 1 ]; then
         echo "Invalid number"
+        zenity --error --text="Invalid Number!!"
         continue
     fi
 
@@ -74,10 +78,12 @@ do
     while true
     do
         read -p "enter the name of column $((i+1)): " name
-
+	name=$(zenity --entry --title="Column Name" /
+	--text="Enter the name of column $((i+1)): ")
         # empty?
         if [ -z "$name" ]; then
             echo "invalid column name"
+            zenity --error --text="Invalid Number!!"
             continue
         fi
 

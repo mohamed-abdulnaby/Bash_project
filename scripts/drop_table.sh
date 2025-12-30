@@ -6,15 +6,17 @@ META_FILE="$DB_DIR/$table.meta"
 DATA_FILE="$DB_DIR/$table.data"
 
 if [ ! -f "$META_FILE" ] && [ ! -f "$DATA_FILE" ]; then
-    echo "Table '$table' does not exist."
+    zenity --error --text="Table '$table' does not exist."
     return
 fi
 
-read -p "Are you sure you want to delete table '$table'? (Y/n): " confirm
-case "$confirm" in
-    Y) ;;
-    *) echo "Aborted."; return ;;
-esac
+if zenity --question --text="do you want to drop table $table ?"; then
+
 rm -f "$META_FILE" "$DATA_FILE"
 echo -e "Table '$table' has been deleted.\n@ "$(date)" | tee -a "$HOME/DBs/DB.log""
-exit 0
+zenity --info --text="Table '$table' has been deleted."
+
+else
+zenity --info --text="aborted dropping"
+fi
+return

@@ -6,19 +6,17 @@ DATA_FILE="$DB_DIR/$table.data"
 
 # Validate table exists
 if [ ! -f "$META_FILE" ] || [ ! -f "$DATA_FILE" ]; then
-    echo "Table '$table' does not exist."
+    zenity --error --text="Table '$table' does not exist."
     return
 fi
 
 # Check if table has data
 if [ ! -s "$DATA_FILE" ]; then
-    echo "Table is empty, nothing to delete."
+    zenity --error --text="Table is empty, nothing to delete."
     return
 fi
 
-unset col_names
-unset col_types
-# Read column names from metadata
+
 # unset arrays if any
 unset col_names
 unset col_types
@@ -32,63 +30,54 @@ while read -r line; do
 done < "$META_FILE"
 
 # Show available columns
-echo "Available columns:"
 for ((i=0; i<${#col_names[@]}; i++)); do
-    echo "$((i+1))) ${col_names[i]} (${col_types[i]})"
+    merged+=("${col_names[i]}" "${col_types[i]}")
 done
 
-# Get column for WHERE condition
-read -p "Select column number for WHERE condition: " col_choice
+selected_col=$(zenity --list --title="pick a column for the WHERE condition" --column="name" --column="type" "${merged[@]}")
 
-# Validate column choice
-case "$col_choice" in
-    ''|*[!0-9]*)
-        echo "Invalid choice"
-        return
-        ;;
-esac
+[[ -z "$selected_col" ]] && zenity --error --text="invalid selected column"
 
-if [ "$col_choice" -lt 1 ] || [ "$col_choice" -gt "${#col_names[@]}" ]; then
-    echo "Invalid choice"
+col_index=1
+for ((i=0; i<${#col_names[@]}; i++)); do
+    if [[ "${col_names[i]}" == "$selected_col" ]]; then
+        col_index=i
+        break
+    fi
+done
+
+if (( col_index == -1 )); then
+    zenity --error --text="Column not found."
     return
 fi
 
-col_index=$((col_choice-1))
-selected_col="${col_names[col_index]}"
+# Ask for value to delete
+delete_value=$(zenity --entry \
+    --text="Delete rows where [$selected_col] = ?" \
+)
 
-# Get value to match
-read -p "Enter value to delete (rows where $selected_col = value): " delete_value
-
-echo ""
-echo "Rows that will be deleted:"
-echo "----------------------------------------"
+[[ -z "$delete_value" ]] && zenity --error --text="Invalid deleted value"
 
 # Show matching rows and count them
+matches=""
 count=0
+
 while IFS= read -r line; do
     # Split the line by : into an array
     IFS=: read -ra values <<< "$line"
     
     # Check if the specific column matches
     if [ "${values[$col_index]}" = "$delete_value" ]; then
-        echo "$line"
+        matches+="$line"$'\n'
         ((count++))
     fi
 done < "$DATA_FILE"
 
-echo "----------------------------------------"
-echo "Total rows to delete: $count"
+zenity --text-info --title="Matching Rows" --filename=<(printf "%s" "$matches")
 
-if [ "$count" -eq 0 ]; then
-    echo "No matching rows found."
-    return
-fi
+zenity --question --text="Found $count rows.\nDelete them?"
 
-# Confirm before deleting
-read -p "Are you sure? (yes/no): " confirm
-
-if [ "$confirm" != "yes" ]; then
-    echo "Delete cancelled."
+if [[ $? -ne 0 ]]; then
     return
 fi
 
@@ -111,3 +100,5 @@ unset col_names
 unset col_types
 
 echo -e "Successfully deleted $count row(s).\n@ "$(date)"" | tee -a "$HOME/DBs/DB.log"
+
+zenity --info --text="successfully deleted"

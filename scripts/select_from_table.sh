@@ -1,127 +1,67 @@
 #!/bin/bash
-
 table="$1"
 META_FILE="$DB_DIR/$table.meta"
 DATA_FILE="$DB_DIR/$table.data"
-#pwd
-echo "$META_FILE"
-## extra valid
 # Validate table exists
-if [ ! -f "$META_FILE" ] && [ ! -f "$DATA_FILE" ]; then
-    echo "Table '$table' does not exist."
+if [ ! -f "$META_FILE" ] || [ ! -f "$DATA_FILE" ]; then
+    zenity --error --text="Table '$table' does not exist."
     return
 fi
-
-# arrays
-declare -a tags
-
-# --- Step 1: Set the columns to be shown ---
-awk -F: '{ printf "%-10s", $1 } END { print "" }' $META_FILE
-read -p "Select columns in the format(y:y:N...:y): " selection
-if [[ "$selection" =~ ^(y|N)(:(y|N))+$ ]]
-then
-	echo "$selection"
-	IFS=: read -ra tags <<< $selection
-	read -p "Is there a condition?(Y/N): " is_condition
-	case "$is_condition" in
-		"Y")
-			read -p "Enter Condition: " condition ;;
-		"N")
-			echo "Okii" ;;
-		*) 
-			echo "Invalid confirmation!!" 
-			return
-			;;
-	esac
-else
-	echo "Invalid column selection!!"
-	return	
+# Format: "ID" "Label" "State"
+col_names=()
+while IFS= read -r line; do
+    col_name=$(echo "$line" | cut -d: -f1)
+    col_names+=("$col_name")
+done < "$META_FILE"
+zenity_args=()
+for ((i=0; i<${#col_names[@]}; i++)); do
+    zenity_args+=("FALSE" "$i" "${col_names[i]}")
+done
+choices=$(zenity --list \
+    --title="Select columns" \
+    --text="Pick columns: " \
+    --checklist \
+    --column="Select" --column="ID" --column="Column" \
+    "${zenity_args[@]}" \
+    --separator="|" \
+    --print-column=2)
+[[ -z "$choices" ]] && zenity --error --text="cancelled" && return
+IFS="|" read -ra selected_indices <<< "$choices"
+where_col=""
+where_val=""
+if zenity --question --text="Do you want a WHERE condition?"; then
+    where_col=$(zenity --list \
+        --title="WHERE Column" \
+        --text="Pick column for condition:" \
+        --column="Column" "${col_names[@]}")
+    [[ -z "$where_col" ]] && zenity --info --text="Cancelled" && return
+    where_val=$(zenity --entry \
+        --title="WHERE Value" \
+        --text="Rows where '$where_col' =")
 fi
-
-if [[ "$is_condition" == "Y" ]]
-then
-	# --- Step 2: Extract WHERE clause if it exists ---
-	echo "$condition"
-	where_col=""
-	where_val=""
-	where_op=""
-	where_part="$condition"
-	if [[ "$where_part" == *">="* ]]; then
-	    where_op=">="
-	    where_col="${where_part%%>=*}"
-	    where_val="${where_part##*>=}"
-	elif [[ "$where_part" == *"<="* ]]; then
-	    where_op="<="
-	    where_col="${where_part%%<=*}"
-	    where_val="${where_part##*<=}"
-	elif [[ "$where_part" == *"!="* ]]; then
-	    where_op="!="
-	    where_col="${where_part%%!=*}"
-	    where_val="${where_part##*!=}"
-	elif [[ "$where_part" == *">"* ]]; then
-	    where_op=">"
-	    where_col="${where_part%%>*}"
-	    where_val="${where_part##*>}"
-	elif [[ "$where_part" == *"<"* ]]; then
-	    where_op="<"
-	    where_col="${where_part%%<*}"
-	    where_val="${where_part##*<}"
-	elif [[ "$where_part" == *"="* ]]; then
-	    where_op="="
-	    where_col="${where_part%%=*}"
-	    where_val="${where_part##*=}"
-	fi
-	echo "$where_op"
-	echo "$where_col"
-	echo "$where_val"
-fi
-# --- Step 3: print ---
-# --- Step 3.1: print table header ---
-tags_str="${tags[*]}"
-awk -F: -v list="$tags_str" '
-BEGIN { n = split(list,tags, " ")}
-{
-	if (tags[NR] == "y"){
-		printf "%-15s|", $1
-	} 
-}
-END { printf "\n"}' $META_FILE
-# --- Step 3.2: print table contents ---
-where_col=$(awk -F: -v column="$where_col" '{
-	if($1 == column) print NR
-}' $META_FILE)
-#echo "$where_col"
-awk -F: -v tag_list="$tags_str" -v operation="$where_op" -v column="$where_col" -v value="$where_val" -v condition="$is_condition" '
-BEGIN { n = split(tag_list,tags, " ")}
-{
-	# skip if no condition
-	is_match = 0
-	if (condition == "Y") {
-	if (operation == ">=" && $column >= value) 
-	{
-	is_match = 1
-	#print $column 
-	}
-	else if (operation == "<=" && $column <= value) is_match = 1
-	else if (operation == ">"  && $column >  value) is_match = 1
-	else if (operation == "<"  && $column <  value) is_match = 1
-	else if (operation == "!=" && $column != value) is_match = 1
-	else if (operation == "="  && $column == value) {is_match = 1
-	#print $column
-	}
-	}
-	else
-	{ is_match = 1 }
-	if (is_match) {
-	# print only tagged columns
-	for (i = 1; i <= NF; i++) {
-	    if (tags[i] == "y") {
-		printf "%-15s|", $i
-	    }
-	}
-	printf "\n"
-	}
-}
-END { printf "\n"} ' $DATA_FILE
-## unset arrays
-unset tags
+output=""
+for idx in "${selected_indices[@]}"; do
+    output+="${col_names[$idx]}"$'\t'$'\t'$'\t'
+done
+output="${output%$'\t'$'\t'$'\t'}"$'\n'
+output+="-------------------------------------------------------"$'\n'
+# Data rows
+while IFS=: read -r -a row; do
+    # Apply WHERE if exists
+    if [[ -n "$where_col" ]]; then
+        where_col_index=-1
+        for i in "${!col_names[@]}"; do
+            [[ "${col_names[i]}" == "$where_col" ]] && where_col_index=$i && break
+        done
+        [[ "${row[where_col_index]}" != "$where_val" ]] && continue
+    fi
+    line=""
+    for idx in "${selected_indices[@]}"; do
+        line+="${row[$idx]}"$'\t'$'\t'$'\t'
+    done
+    output+="${line%$'\t'$'\t'$'\t'}"$'\n'
+done < "$DATA_FILE"
+zenity --text-info \
+    --title="Table: $table" \
+    --width=600 --height=400 \
+    --filename=<(echo "$output")

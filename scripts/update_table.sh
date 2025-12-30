@@ -62,9 +62,18 @@ set_col_index=$((set_col_choice-1))
 set_col_name="${col_names[set_col_index]}"
 set_col_type="${col_types[set_col_index]}"
 
-# Get new value
-read -p "Enter NEW value for $set_col_name: " new_value
 
+while true; do
+
+    # Get new value
+    read -p "Enter NEW value for $set_col_name: " new_value
+    # Check if entered value is empty
+    if [  -z "$new_value" ]; then
+        echo "please enter a valid value!"
+        continue
+    fi
+    break
+done
 # Validate data type
 if [ "$set_col_type" = "int" ]; then
     case "$new_value" in

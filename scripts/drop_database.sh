@@ -1,9 +1,10 @@
 #!/bin/bash
-source $HOME/BashProject/scripts/list_database.sh
-read -p "Enter the database to be dropped: " drop
+drop=$(basename -a "$HOME/DBs"/*/ | zenity --list --title="Databases" --column="choose which one to drop")
+
 if rm -r $HOME/DBs/"$drop" 2>> "$HOME/DBs/DB.log"
 then
+	zenity --info --text="database $drop dropped successfully"
 	echo -e ""$drop" Database Dropped Successfully!\n@ "$(date)"" | tee -a "$HOME/DBs/DB.log"
 else
-	echo ""$drop" Database Not Found!"
+	zenity --error --text="database $drop does not exist"
 fi

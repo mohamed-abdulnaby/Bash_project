@@ -1,22 +1,19 @@
 #!/bin/bash
-source "$HOME/BashProject/scripts/list_database.sh"
-
-read -p "Enter database to connect: " connect
+connect=$(basename -a $(ls -d "$HOME/DBs"/*/ )| zenity --list --title="Databases" --column="choose a database")
 
 DB_DIR="$HOME/DBs/$connect"
-tableps="Choose a table operation (create/list/select/exit): "
-
 operations() {
 	while true
  	do
-	 	echo "Select operation:"
-	    	echo "1) drop table"
-	    	echo "2) insert into table"
-	    	echo "3) select from table"
-	    	echo "4) delete from table"
-	    	echo "5) update table"
-    		echo "6) back"
-    		read -p "Enter your choice (1-6): " choice
+	 	choice=$(zenity --list \
+		--title="select operation" \
+		--column="ID" --column="Operation"\
+		1 "drop table"\
+		2 "insert into table"\
+		3 "select from table"\
+		4 "delete from table"\
+		5 "update table"\
+		6 "go back")
 		case "$choice" in
 			1) 
 				echo "dropping table" 
@@ -38,13 +35,11 @@ operations() {
 				echo "updating table"
 				source $HOME/BashProject/scripts/update_table.sh "$selected_table" 
 				;;
-			6)
+			6|*)
 				echo "going back"
 				break
 				;;
-			*)
-				echo "invalid choice"
-				;;
+
 		esac
 	done
 	selected_table=""
@@ -52,65 +47,45 @@ operations() {
 
 
 if [ -d "$DB_DIR" ]; then
-    echo "Connecting to $connect..."
     
-    PS3=$tableps
-    select option in "create table" "list tables" "select a table for an operation" "exit"
-    do
-        case "$REPLY" in
-            1)
-                echo "Creating a table..."
-                source "$HOME/BashProject/scripts/create_table.sh" "$DB_DIR"
-                ;;
-            2)
-                echo "Listing tables:"
-                # error handling
-                # lists full path not table names
-                if [[ $(basename -s .meta -a "$DB_DIR"/*.meta) == "*" ]]
-                then
-                	echo "No tables to list"
-                else
-                	basename -s .meta -a "$DB_DIR"/*.meta
-                fi
-                ;;
-            3)
-            	mapfile -t files < <(basename -s .meta -a "$DB_DIR"/*.meta)
-                if [[ ${files[0]} == "*" ]]; then
-                    echo "No tables to operate on."
-                    continue
-                fi
-                echo "${files[@]}"
-                read -p "Enter the table to operate on(or back): " value
-                if [[ "$value" == "back" ]]
-                then
-                	continue
-                fi
-                for table in "${files[@]}"
-                do
-                	#echo "$table"
-                	if [[ "$value" == "$table" ]]
-                	then
-                		selected_table=$value
-                	fi
-                done
-                echo "$selected_table"
-                if [[ -n "$selected_table" ]]
-                then
-                	operations
-                else
-                	echo "$value Table not found"
-                fi
-                ;;
-            4)
-                echo "Exiting..."
-                PS3=$databaseps
-                break
-                ;;
-            *)
-                echo "Invalid entry, please try again"
-                ;;
-        esac
-    done
+    
+    
+    option=$(zenity --list --title="DBMS menu options" --column="Action"\
+			"create table"\
+			"list tables"\
+			"select a table for an operation"\
+			"back")
+	case "$option" in
+		"create table")
+			echo "Creating a table..."
+			source "$HOME/BashProject/scripts/create_table.sh" "$DB_DIR"
+			;;
+		"list tables")
+			echo "Listing tables:"
+			# error handling
+			# lists full path not table names
+			if [[ $(basename -s .meta -a "$DB_DIR"/*.meta) == "*" ]]
+			then
+				echo "No tables to list"
+			else
+				basename -s .meta -a "$DB_DIR"/*.meta
+			fi
+			;;
+		"select a table for an operation")
+			mapfile -t files < <(basename -s .meta -a "$DB_DIR"/*.meta)
+			if [[ ${files[0]} == "*" ]]; then
+				zenity --error --text="no tables to operate on"
+				continue
+			fi
+			value=$(zenity --list --title="choose a table" --column="tables" "${files[@]}")
+			operations
+			;;
+		"back"|*)
+			echo "Exiting..."
+			return
+			;;
+	esac
+    
 else
     echo "$connect Database Not Found!"
 fi

@@ -1,11 +1,7 @@
 #!/bin/bash
-source "$HOME/BashProject/scripts/list_database.sh"
-
-read -p "Enter database to connect: " connect
+connect=$(basename -a $(ls -d "$HOME/DBs"/*/ )| zenity --list --title="Databases" --column="choose a database")
 
 DB_DIR="$HOME/DBs/$connect"
-tableps="Choose a table operation (create/list/select/exit): "
-
 operations() {
 	while true
  	do
@@ -78,30 +74,11 @@ if [ -d "$DB_DIR" ]; then
 		"select a table for an operation")
 			mapfile -t files < <(basename -s .meta -a "$DB_DIR"/*.meta)
 			if [[ ${files[0]} == "*" ]]; then
-				echo "No tables to operate on."
+				zenity --error --text="no tables to operate on"
 				continue
 			fi
-			echo "${files[@]}"
-			read -p "Enter the table to operate on(or back): " value
-			if [[ "$value" == "back" ]]
-			then
-				continue
-			fi
-			for table in "${files[@]}"
-			do
-				#echo "$table"
-				if [[ "$value" == "$table" ]]
-				then
-					selected_table=$value
-				fi
-			done
-			echo "$selected_table"
-			if [[ -n "$selected_table" ]]
-			then
-				operations
-			else
-				echo "$value Table not found"
-			fi
+			value=$(zenity --list --title="choose a table" --column="tables" "${files[@]}")
+			operations
 			;;
 		"back"|*)
 			echo "Exiting..."

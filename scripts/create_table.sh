@@ -77,13 +77,13 @@ do
     # column name
     while true
     do
-        read -p "enter the name of column $((i+1)): " name
+        #read -p "enter the name of column $((i+1)): " name
 	name=$(zenity --entry --title="Column Name" /
 	--text="Enter the name of column $((i+1)): ")
         # empty?
         if [ -z "$name" ]; then
             echo "invalid column name"
-            zenity --error --text="Invalid Number!!"
+            zenity --error --text="Column Names can't be empty !!"
             continue
         fi
 
@@ -91,6 +91,7 @@ do
         case "$name" in
             (*[!a-zA-Z0-9_]*)
                 echo "invalid column name"
+                zenity --error --text="Column Names can only contain (a~z),(A~Z),(0~9) or '_' !!"
                 continue
                 ;;
         esac
@@ -107,6 +108,7 @@ do
 
         if [ "$duplicate" -eq 1 ]; then
             echo "Duplicate column name"
+            zenity --error --text="Column Names can't be empty !!"
             continue
         fi
 
@@ -115,58 +117,30 @@ do
     done
 
     # column type
-    while true
-    do
-        echo "Choose type for $name:"
-        echo "1) string"
-        echo "2) int"
-        read -p "enter choice: " choice
-
-        if [ "$choice" = "1" ]; then
-            col_types[i]="string"
-            break
-        elif [ "$choice" = "2" ]; then
-            col_types[i]="int"
-            break
-        else
-            echo "invalid choice"
-        fi
-    done
-
-    col_pk[i]=0
+	col_types[i]=$(zenity --list --title="Attribute Datatype" /
+	--column="Data Types" /
+	"String" "Int")
+	if [ $? -eq 0 ]; then
+		echo "User selected: ${col_types[i]}"
+		zenity --info --text="Selected: ${col_types[i]}"
+	else
+		return
+	fi
+	col_pk[i]=0
 done
 
 
 # -------------------------
 # choose primary key
 # -------------------------
-while true
-do
-    echo "choose a primary key column:"
-    for (( i=0; i<col_count; i++ ))
-    do
-        echo "$((i+1))) ${col_names[i]}"
-    done
-
-    read -p "enter choice: " pk_choice
-
-    # numeric check
-    case "$pk_choice" in
-        ''|*[!0-9]*)
-            echo "invalid choice"
-            continue
-            ;;
-    esac
-
-    if [ "$pk_choice" -lt 1 ] || [ "$pk_choice" -gt "$col_count" ]; then
-        echo "invalid choice"
-        continue
-    fi
-
-    pk_index=$((pk_choice-1))
-    col_pk[$pk_index]=1
-    break
-done
+pk_choice=$(zenity --list --title="Choose Primary Key" --column="Attributes" /
+"${col_names[@]}")
+if [ $? -eq 0 ]; then
+	echo "User selected: $pk_choice"
+	zenity --info --text="Selected: $pk_choice"
+else
+	return
+fi
 # -------------------------
 # write files
 # -------------------------
@@ -179,6 +153,7 @@ do
 done
 
 echo -e "Table '$table' created successfully.\n@ "$(date)"" | tee -a "$HOME/DBs/DB.log"
+zenity --info --text="Table '$table' created successfully."
 
 #resetting everything
 unset col_names

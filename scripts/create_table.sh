@@ -22,6 +22,14 @@ do
             continue
             ;;
     esac
+    
+    # contains special char
+    case "$table" in
+            (*[!a-zA-Z0-9_]*)
+                echo "invalid table name"
+                continue
+                ;;
+    esac
 
     META_FILE="$DB_DIR/$table.meta"
     DATA_FILE="$DB_DIR/$table.data"
